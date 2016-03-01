@@ -48,7 +48,7 @@ import io.hops.metadata.yarn.dal.RMLoadDataAccess;
 import io.hops.metadata.yarn.dal.RMNodeDataAccess;
 import io.hops.metadata.yarn.dal.ResourceDataAccess;
 import io.hops.metadata.yarn.dal.ResourceRequestDataAccess;
-import io.hops.metadata.yarn.dal.ResourceRequestOfContainerDataAccess;
+import io.hops.metadata.yarn.dal.ContainerResourceRequestDataAccess;
 import io.hops.metadata.yarn.dal.SchedulerApplicationDataAccess;
 import io.hops.metadata.yarn.dal.UpdatedContainerInfoDataAccess;
 import io.hops.metadata.yarn.dal.YarnVariablesDataAccess;
@@ -609,11 +609,11 @@ public class RMUtilities {
     return DA.getAll();
   }
   
- public static Map<String, List<ResourceRequest>> getAllResourceRequestsOfContainer()
+ public static Map<String, List<ResourceRequest>> getAllContainerResourceRequests()
           throws IOException {
 
-    ResourceRequestOfContainerDataAccess DA = (ResourceRequestOfContainerDataAccess) RMStorageFactory
-            .getDataAccess(ResourceRequestOfContainerDataAccess.class);
+    ContainerResourceRequestDataAccess DA = (ContainerResourceRequestDataAccess) RMStorageFactory
+            .getDataAccess(ContainerResourceRequestDataAccess.class);
     return DA.getAll();
   }  
   

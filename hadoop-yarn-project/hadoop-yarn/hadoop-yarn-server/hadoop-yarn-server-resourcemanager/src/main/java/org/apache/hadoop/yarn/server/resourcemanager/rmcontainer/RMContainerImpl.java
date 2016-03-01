@@ -254,14 +254,14 @@ public class RMContainerImpl implements
       //remove the persisted rmContainer resourceRequests
       if (transactionState != null) {
           ((TransactionStateImpl) transactionState)
-               .addResourceRequestsOfContainerToRemove(resourceRequestsToRemove,
+               .addContainerResourceRequestsToRemove(resourceRequests,
                        this.getContainerId().toString());
       }
       this.resourceRequests = requests;
       //Persist the new rmContainer resourceRequest
       if (transactionState != null) {
           ((TransactionStateImpl) transactionState)
-                  .addResourceRequestsOfContainer(resourceRequests,
+                  .addContainerResourceRequests(resourceRequests,
                           this.getContainerId().toString());
       }
     } finally {

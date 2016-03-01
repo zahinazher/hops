@@ -397,7 +397,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerStat
     Map<String, FiCaSchedulerNode> fiCaSchedulerNodes;
     Map<String, List<LaunchedContainers>> launchedContainers;
     Map<String, List<ResourceRequest>> resourceRequests;
-    Map<String, List<ResourceRequest>> resourceRequestsOfContainer;
+    Map<String, List<ResourceRequest>> containerResourceRequests;
     Map<String, List<AppSchedulingInfoBlacklist>> blackLists;
     List<QueueMetrics> allQueueMetrics;
     Map<String, List<FiCaSchedulerAppSchedulingOpportunities>> schedulingOpportunities;
@@ -548,9 +548,9 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerStat
       return resourceRequests.get(id);
     }
     
-    public List<ResourceRequest> getResourceRequestsOfContainer(final String id)
+    public List<ResourceRequest> getContainerResourceRequests(final String id)
         throws IOException {
-      return resourceRequestsOfContainer.get(id);
+      return containerResourceRequests.get(id);
     }
  
     public List<AppSchedulingInfoBlacklist> getBlackList(final String id)
@@ -848,7 +848,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerStat
          //construct ResourceRequest
         List<org.apache.hadoop.yarn.api.records.ResourceRequest> requests=null;
         
-        List<ResourceRequest> resourceRequestlist = resourceRequestsOfContainer
+        List<ResourceRequest> resourceRequestlist = containerResourceRequests
                   .get(hopRMContainer.getContainerIdID());
 
           if (resourceRequestlist != null && !resourceRequestlist.isEmpty()) {

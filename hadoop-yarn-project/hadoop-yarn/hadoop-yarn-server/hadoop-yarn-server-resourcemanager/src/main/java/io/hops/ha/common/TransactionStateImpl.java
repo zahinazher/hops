@@ -36,7 +36,7 @@ import io.hops.metadata.yarn.dal.RMContextInactiveNodesDataAccess;
 import io.hops.metadata.yarn.dal.RMNodeDataAccess;
 import io.hops.metadata.yarn.dal.ResourceDataAccess;
 import io.hops.metadata.yarn.dal.ResourceRequestDataAccess;
-import io.hops.metadata.yarn.dal.ResourceRequestOfContainerDataAccess;
+import io.hops.metadata.yarn.dal.ContainerResourceRequestDataAccess;
 import io.hops.metadata.yarn.dal.UpdatedContainerInfoDataAccess;
 import io.hops.metadata.yarn.dal.capacity.CSLeafQueueUserInfoDataAccess;
 import io.hops.metadata.yarn.dal.capacity.CSQueueDataAccess;
@@ -127,10 +127,10 @@ public class TransactionStateImpl extends TransactionState {
   private final Queue<io.hops.metadata.yarn.entity.Container> toAddContainers =
           new ConcurrentLinkedQueue<io.hops.metadata.yarn.entity.Container>();
   private final Set<io.hops.metadata.yarn.entity.ResourceRequest>
-      resourceRequestOfContainerToAdd =
+      containerResourceRequestToAdd =
       new HashSet<io.hops.metadata.yarn.entity.ResourceRequest>();
   private final Set<io.hops.metadata.yarn.entity.ResourceRequest>
-      resourceRequestOfContainerToRemove =
+      containerResourceRequestToRemove =
       new HashSet<io.hops.metadata.yarn.entity.ResourceRequest>();  
   private final CSQueueInfo csQueueInfo = new CSQueueInfo();
   
@@ -232,8 +232,8 @@ public class TransactionStateImpl extends TransactionState {
     persistAllocateResponsesToRemove();
     persistRMContainerToUpdate();
     persistContainers();
-    persistResourceRequestOfContainer();
-    persistResourceRequestsOfContainerToRemove();
+    persistContainerResourceRequestToAdd();
+    persistContainerResourceRequestsToRemove();
     //TODO rebuild cluster resource from node resources
 //    persistClusterResourceToUpdate();
 //    persistUsedResourceToUpdate();
@@ -616,25 +616,25 @@ public class TransactionStateImpl extends TransactionState {
     toAddContainers.add(hopContainer);        
   }
   
-  public void addResourceRequestsOfContainer(List<ResourceRequest> resourceRequestToAdd,
+  public void addContainerResourceRequests(List<ResourceRequest> resourceRequestToAdd,
           String containerId){
       for (ResourceRequest rq : resourceRequestToAdd) {
           io.hops.metadata.yarn.entity.ResourceRequest resourceRequest=
                   new io.hops.metadata.yarn.entity.ResourceRequest(containerId,
                           rq.getResourceName(),
                           ((ResourceRequestPBImpl) rq).getProto().toByteArray());
-          if(!resourceRequestOfContainerToRemove.remove(resourceRequest)){
-              resourceRequestOfContainerToAdd.add(resourceRequest);
+          if(!containerResourceRequestToRemove.remove(resourceRequest)){
+              containerResourceRequestToAdd.add(resourceRequest);
           }
       }     
   }
   
-  protected void persistResourceRequestOfContainer() throws StorageException {
-    if (!resourceRequestOfContainerToAdd.isEmpty()) {
-      ResourceRequestOfContainerDataAccess rDA = 
-              (ResourceRequestOfContainerDataAccess) RMStorageFactory
-              .getDataAccess(ResourceRequestOfContainerDataAccess.class);
-      rDA.addAll(resourceRequestOfContainerToAdd); 
+  protected void persistContainerResourceRequestToAdd() throws StorageException {
+    if (!containerResourceRequestToAdd.isEmpty()) {
+      ContainerResourceRequestDataAccess rDA = 
+              (ContainerResourceRequestDataAccess) RMStorageFactory
+              .getDataAccess(ContainerResourceRequestDataAccess.class);
+      rDA.addAll(containerResourceRequestToAdd); 
     }
   }
   
@@ -646,25 +646,25 @@ public class TransactionStateImpl extends TransactionState {
     }
   }
   
-  public void addResourceRequestsOfContainerToRemove(List<ResourceRequest> resourceRequestToRemove,
+  public void addContainerResourceRequestsToRemove(List<ResourceRequest> resourceRequestToRemove,
           String containerId) {
       for (ResourceRequest rq : resourceRequestToRemove) {
           io.hops.metadata.yarn.entity.ResourceRequest resourceRequest=
                   new io.hops.metadata.yarn.entity.ResourceRequest(containerId,
                           rq.getResourceName(),
                           ((ResourceRequestPBImpl) rq).getProto().toByteArray());
-              if(!resourceRequestOfContainerToAdd.remove(resourceRequest)){
-                  resourceRequestOfContainerToRemove.add(resourceRequest);
+              if(!containerResourceRequestToAdd.remove(resourceRequest)){
+                  containerResourceRequestToRemove.add(resourceRequest);
               }        
       }
   }
  
-  protected void persistResourceRequestsOfContainerToRemove() throws StorageException {
-    if (!resourceRequestOfContainerToRemove.isEmpty()) {
-      ResourceRequestOfContainerDataAccess rDA  =
-              (ResourceRequestOfContainerDataAccess) RMStorageFactory
-                    .getDataAccess(ResourceRequestOfContainerDataAccess.class);
-      rDA.removeAll(resourceRequestOfContainerToRemove);
+  protected void persistContainerResourceRequestsToRemove() throws StorageException {
+    if (!containerResourceRequestToRemove.isEmpty()) {
+      ContainerResourceRequestDataAccess rDA  =
+              (ContainerResourceRequestDataAccess) RMStorageFactory
+                    .getDataAccess(ContainerResourceRequestDataAccess.class);
+      rDA.removeAll(containerResourceRequestToRemove);
     }
   }
   

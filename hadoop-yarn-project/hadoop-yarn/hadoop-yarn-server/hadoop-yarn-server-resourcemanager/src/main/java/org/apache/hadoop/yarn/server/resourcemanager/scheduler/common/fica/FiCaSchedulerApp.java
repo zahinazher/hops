@@ -97,7 +97,7 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt
     //remove the persisted container resources
     if (transactionState != null) {
       ((TransactionStateImpl) transactionState)
-              .addResourceRequestsOfContainerToRemove(rmContainer
+              .addContainerResourceRequestsToRemove(rmContainer
                       .getResourceRequests(),
                       rmContainer.getContainerId().toString());
     }
@@ -162,11 +162,11 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt
 
     // Update consumption and track allocations
     List<ResourceRequest> resourceRequestList = appSchedulingInfo.
-            allocate(type, node, priority, request, container, transactionState)    ;
+            allocate(type, node, priority, request, container, transactionState);
     Resources.addTo(currentConsumption, container.getResource());
-    
+
     // Update resource requests related to "request" and store in RMContainer 
-    ((RMContainerImpl)rmContainer).setResourceRequests(resourceRequestList,
+    ((RMContainerImpl) rmContainer).setResourceRequests(resourceRequestList,
             transactionState);
     //HOP : Update Resources
     if (transactionState != null) {
