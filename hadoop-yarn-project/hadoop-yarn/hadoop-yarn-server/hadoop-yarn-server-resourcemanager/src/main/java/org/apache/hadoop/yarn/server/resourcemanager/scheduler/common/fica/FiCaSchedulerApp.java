@@ -95,7 +95,7 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt
     }
     
     //remove the persisted container resources
-    if (transactionState != null) {
+    if (transactionState != null && rmContainer.getResourceRequests()!=null) {
       ((TransactionStateImpl) transactionState)
               .addContainerResourceRequestsToRemove(rmContainer
                       .getResourceRequests(),

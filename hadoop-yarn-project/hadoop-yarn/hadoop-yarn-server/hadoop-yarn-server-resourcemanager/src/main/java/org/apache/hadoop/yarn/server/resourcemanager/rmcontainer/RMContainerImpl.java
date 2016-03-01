@@ -250,16 +250,15 @@ public class RMContainerImpl implements
           TransactionState transactionState) {
     try {
       writeLock.lock();
-      List<ResourceRequest> resourceRequestsToRemove=resourceRequests;
       //remove the persisted rmContainer resourceRequests
-      if (transactionState != null) {
+      if (transactionState != null && resourceRequests!=null ) {
           ((TransactionStateImpl) transactionState)
                .addContainerResourceRequestsToRemove(resourceRequests,
                        this.getContainerId().toString());
       }
       this.resourceRequests = requests;
       //Persist the new rmContainer resourceRequest
-      if (transactionState != null) {
+      if (transactionState != null && resourceRequests!=null ) {
           ((TransactionStateImpl) transactionState)
                   .addContainerResourceRequests(resourceRequests,
                           this.getContainerId().toString());
