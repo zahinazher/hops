@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.event.RMAppAttemptContainerAcquiredEvent;
@@ -44,6 +45,8 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.webapp.util.WebAppUtils;
 
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -148,6 +151,7 @@ public class RMContainerImpl implements
   private long finishTime;//recovered
   private ContainerStatus finishedStatus;//recovered
   private boolean isAMContainer;
+  private List<ResourceRequest> resourceRequests;
 
   public RMContainerImpl(Container container, ApplicationAttemptId appAttemptId,
       NodeId nodeId, String user, RMContext rmContext,
@@ -163,6 +167,7 @@ public class RMContainerImpl implements
     this.eventHandler = rmContext.getDispatcher().getEventHandler();
     this.containerAllocationExpirer = rmContext.getContainerAllocationExpirer();
     this.isAMContainer = false;
+    this.resourceRequests = null;
 
     ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     this.readLock = lock.readLock();
@@ -174,7 +179,9 @@ public class RMContainerImpl implements
 
   //TORECOVER OPT change to implement recoverable
   @Override
-  public void recover(RMContainer hopRMContainer) {
+  public void recover(RMContainer hopRMContainer,
+          List<org.apache.hadoop.yarn.api.records.ResourceRequest>
+                  resourceRequest) {
     LOG.debug("recovering container " + hopRMContainer.getContainerIdID() + 
             " in state "+ hopRMContainer.getState());
     this.startTime = hopRMContainer.getStarttime();
@@ -200,6 +207,7 @@ public class RMContainerImpl implements
           ContainerState.valueOf(hopRMContainer.getFinishedStatusState()), user,
           hopRMContainer.getExitStatus());
     }
+    this.resourceRequests=resourceRequest; 
   }
 
   @Override
@@ -227,7 +235,39 @@ public class RMContainerImpl implements
       this.readLock.unlock();
     }
   }
-
+  
+    @Override
+    public List<ResourceRequest> getResourceRequests() {
+    try {
+      readLock.lock();
+      return resourceRequests;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  public void setResourceRequests(List<ResourceRequest> requests,
+          TransactionState transactionState) {
+    try {
+      writeLock.lock();
+      //remove the persisted rmContainer resourceRequests
+      if (transactionState != null && resourceRequests!=null ) {
+          ((TransactionStateImpl) transactionState)
+               .addContainerResourceRequestsToRemove(resourceRequests,
+                       this.getContainerId().toString());
+      }
+      this.resourceRequests = requests;
+      //Persist the new rmContainer resourceRequest
+      if (transactionState != null && resourceRequests!=null ) {
+          ((TransactionStateImpl) transactionState)
+                  .addContainerResourceRequests(resourceRequests,
+                          this.getContainerId().toString());
+      }
+    } finally {
+      writeLock.unlock();
+    }
+  }
+ 
   @Override
   public Resource getReservedResource() {
     return reservedResource;
@@ -416,6 +456,8 @@ public class RMContainerImpl implements
 
     @Override
     public void transition(RMContainerImpl container, RMContainerEvent event) {
+      // Clear ResourceRequest stored in RMContainer
+      container.setResourceRequests(null, event.getTransactionState());
       // Register with containerAllocationExpirer.
       container.containerAllocationExpirer.register(container.getContainerId());
 
