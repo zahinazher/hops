@@ -50,7 +50,6 @@ public class UniqueNames {
     Count c = map.get(name);
     if (c == null) {
       c = new Count(name, 0);
-      LOG.info("adding name to map " + name);
       map.put(name, c);
       return name;
     }
@@ -59,7 +58,6 @@ public class UniqueNames {
       String newName = joiner.join(name, ++c.value);
       Count c2 = map.get(newName);
       if (c2 == null) {
-        LOG.info("adding name to map " + newName);
         map.put(newName, c);
         return newName;
       }

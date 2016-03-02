@@ -20,9 +20,10 @@ package org.apache.hadoop.yarn.server.applicationhistoryservice.webapp;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.server.api.ApplicationContext;
 import org.apache.hadoop.yarn.server.applicationhistoryservice.ApplicationHistoryManager;
-import org.apache.hadoop.yarn.server.applicationhistoryservice.timeline.TimelineStore;
-import org.apache.hadoop.yarn.server.applicationhistoryservice.timeline.security.TimelineACLsManager;
-import org.apache.hadoop.yarn.server.applicationhistoryservice.timeline.security.TimelineDelegationTokenSecretManagerService;
+import org.apache.hadoop.yarn.server.timeline.TimelineStore;
+import org.apache.hadoop.yarn.server.timeline.security.TimelineACLsManager;
+import org.apache.hadoop.yarn.server.timeline.security.TimelineDelegationTokenSecretManagerService;
+import org.apache.hadoop.yarn.server.timeline.webapp.TimelineWebServices;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.WebApp;
 import org.apache.hadoop.yarn.webapp.YarnJacksonJaxbJsonProvider;
@@ -83,7 +84,7 @@ public class AHSWebApp extends WebApp implements YarnWebParams {
   }
 
   public TimelineDelegationTokenSecretManagerService
-    getTimelineDelegationTokenSecretManagerService() {
+  getTimelineDelegationTokenSecretManagerService() {
     return secretManagerService;
   }
 
@@ -102,12 +103,12 @@ public class AHSWebApp extends WebApp implements YarnWebParams {
     bind(TimelineStore.class).toInstance(timelineStore);
     bind(TimelineDelegationTokenSecretManagerService.class).toInstance(
             secretManagerService);
-    //bind(TimelineACLsManager.class).toInstance(timelineACLsManager);
+    bind(TimelineACLsManager.class).toInstance(timelineACLsManager);
     route("/", AHSController.class);
     route(pajoin("/apps", APP_STATE), AHSController.class);
     route(pajoin("/app", APPLICATION_ID), AHSController.class, "app");
     route(pajoin("/appattempt", APPLICATION_ATTEMPT_ID), AHSController.class,
-        "appattempt");
+            "appattempt");
     route(pajoin("/container", CONTAINER_ID), AHSController.class, "container");
     route(pajoin("/logs", NM_NODENAME, CONTAINER_ID, ENTITY_STRING, APP_OWNER,
             CONTAINER_LOG_TYPE), AHSController.class, "logs");
