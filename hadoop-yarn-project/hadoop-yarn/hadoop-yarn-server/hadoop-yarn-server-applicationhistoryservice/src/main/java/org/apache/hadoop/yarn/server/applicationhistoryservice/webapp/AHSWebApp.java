@@ -103,7 +103,7 @@ public class AHSWebApp extends WebApp implements YarnWebParams {
     bind(TimelineStore.class).toInstance(timelineStore);
     bind(TimelineDelegationTokenSecretManagerService.class).toInstance(
             secretManagerService);
-    //bind(TimelineACLsManager.class).toInstance(timelineACLsManager);
+    bind(TimelineACLsManager.class).toInstance(timelineACLsManager);
     route("/", AHSController.class);
     route(pajoin("/apps", APP_STATE), AHSController.class);
     route(pajoin("/app", APPLICATION_ID), AHSController.class, "app");
