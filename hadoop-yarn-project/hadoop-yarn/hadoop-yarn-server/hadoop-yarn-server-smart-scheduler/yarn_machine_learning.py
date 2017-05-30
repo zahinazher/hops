@@ -1,3 +1,8 @@
+'''
+Created on April 16, 2017
+@author: Zahin Azher Rashid
+'''
+
 from pyspark import SparkConf, SparkContext
 from influxdb import InfluxDBClient
 from copy import deepcopy
@@ -19,36 +24,6 @@ class InfluxTensorflow():
         self.password = password
         self.db = db
         self.len_features = 5
-
-        """
-        these queries are only for testing and shall be removed after code testing
-        """
-        self.query_gg = 'select * from '+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.AllocatedContainers",'+\
-        '/nodemanager.container.ContainerResource_container_.*.ContainerResource=container_.*.Context=container.ContainerPid=.*.Hostname=vagrant.PCpuUsagePercentMaxPercents/,'+\
-        '/nodemanager.container.ContainerResource_container_.*.ContainerResource=container_.*.Context=container.ContainerPid=.*.Hostname=vagrant.PMemUsageMBsMaxMBs/,'+\
-        '/application_.*.driver.BlockManager.memory.memUsed_MB/,/application_.*.driver.BlockManager.memory.remainingMem_MB/,'+\
-        '/application_.*.driver.BlockManager.disk.diskSpaceUsed_MB/,'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemHeapCommittedM",'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemHeapMaxM",'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemHeapUsedM",'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapCommittedM",'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapMaxM",'+\
-        '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapUsedM",'+\
-        '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.AllocatedGB",'+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.ContainerLaunchDurationAvgTime" '
-
-
-        self.query_g = 'select * from '+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.AllocatedContainers",'+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.AvailableVCores",'+\
-         '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemHeapMaxM",'+\
-         '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemHeapUsedM",'+\
-         '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapCommittedM",'+\
-         '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapMaxM",'+\
-         '"nodemanager.jvm.JvmMetrics.Context=jvm.ProcessName=NodeManager.Hostname=vagrant.MemNonHeapUsedM",'+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.AllocatedGB",'+\
-         '"nodemanager.yarn.NodeManagerMetrics.Context=yarn.Hostname=vagrant.ContainerLaunchDurationAvgTime" '
 
         self.query_rns = 'select * from'
 
@@ -128,21 +103,28 @@ class InfluxTensorflow():
         :param: rdd_join: Resilient distributed datasets
         :return: result for ML model
         """
-        nc = self.len_features # number of columns
-        nr = 3 # number of rows
-        X = tf.placeholder(tf.float32, [nr,nc])
+        data = rdd_join.collect()
+        data = np.array(data)
+        batch_size = len(data) # total rows of data
+        col_length = len(data[0])
+
+        X = tf.placeholder(tf.float32, [batch_size, col_length])
+
+        one_hot = tf.convert_to_tensor(data)
+        
+        print ('one', one_hot)
 
         # 1. Define Variables and Placeholders
-        X = tf.placeholder(tf.float32, [nr, nc]) #the first dimension (None) will index the images
+        X = tf.placeholder(tf.float32, [batch_size, col_length]) #the first dimension (None) will index the images
         # Y_ = ?
-        Y_ = tf.placeholder(tf.float32, [nr, nc]) # one hot encoding
+        Y_ = tf.placeholder(tf.float32, [batch_size, col_length]) # one hot encoding
         # Weights initialised with small random values between -0.2 and +0.2 ; 200, 100, 60, 30 and 10 neurons for each layer
-        W1 = tf.Variable(tf.truncated_normal([nr, nc], stddev=0.1)) # 784 = 28 * 28
-        B1 = tf.Variable(tf.zeros([nc]))
-        W2 = tf.Variable(tf.truncated_normal([nr, nc], stddev=0.1)) # 784 = 28 * 28
-        B2 = tf.Variable(tf.zeros([nc]))
+        W1 = tf.Variable(tf.truncated_normal([batch_size, col_length], stddev=0.1)) # 784 = 28 * 28
+        B1 = tf.Variable(tf.zeros([col_length]))
+        W2 = tf.Variable(tf.truncated_normal([batch_size, col_length], stddev=0.1)) # 784 = 28 * 28
+        B2 = tf.Variable(tf.zeros([col_length]))
         # 2. Define the model
-        XX = tf.reshape(X, [nc, nr]) # flattening images
+        XX = tf.reshape(X, [col_length, batch_size]) # flattening images
 
         Y = Wx + b
         ######## SIGMOID activation func #######
@@ -202,7 +184,7 @@ class InfluxTensorflow():
         training_data = rdd_join.collect()
 
         data_initializer = tf.placeholder(dtype=tf.float32,
-                                    shape=[nr, self.len_features])
+                                    shape=[batch_size, self.len_features])
         input_data = tf.Variable(data_initializer, trainable=False, collections=[])
         res = sess.run(input_data.initializer, feed_dict={data_initializer: training_data})
         print res
@@ -211,15 +193,21 @@ class InfluxTensorflow():
         """
         only for test purpose
         """
-        val = rdd_join.collect()
-        training_data = np.array(rdd_join.collect())
+        data = rdd_join.collect()
+        batch_size = len(data) # total rows of data
+        col_length = len(data[0])
 
-        x = tf.placeholder(tf.float32, shape=(3, 5))
-        y = tf.matmul(tf.reshape(x, [5, 3]), x)
-        #with tf.Session() as sess:
-        #    print (sess.run(y, feed_dict={x: val}))
+        training_data = np.array(data)
 
-        # Comments below
+        #if n_features != self.n_input_features_:
+        #    raise ValueError("X shape does not match training shape")
+
+        x = tf.placeholder(tf.float32, shape=(col_length, batch_size))
+        val = tf.one_hot([0, 3], 4)
+        y = tf.matmul(tf.reshape(x, [batch_size, col_length]), x)
+        with tf.Session() as sess:
+            print (sess.run(y, feed_dict={x: val}))
+
         # Specify that all features have real-value data
         feature_columns = [tf.contrib.layers.real_valued_column("", dimension=5)]
 
@@ -238,6 +226,7 @@ class InfluxTensorflow():
         print ('Accuracy: {0:f}'.format(accuracy_score))
 
         return []
+
 
     def train_model_lstm(self, data):
         """
